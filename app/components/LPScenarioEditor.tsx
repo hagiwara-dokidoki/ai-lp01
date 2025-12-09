@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { LPPageScenario, LPScenario } from '@/lib/types';
+import { LPPageScenario, LPScenario, ScrapedImage } from '@/lib/types';
 
 interface LPScenarioEditorProps {
   onSubmit: (scenario: LPScenario) => void;
   onBack: () => void;
   loading: boolean;
   initialPages?: number;
+  availableImages: ScrapedImage[]; // 利用可能な全画像
 }
 
 // デフォルトのページテンプレート
@@ -34,6 +35,7 @@ export default function LPScenarioEditor({
   onBack,
   loading,
   initialPages = 8,
+  availableImages,
 }: LPScenarioEditorProps) {
   const [pageCount, setPageCount] = useState(initialPages);
   const [pages, setPages] = useState<LPPageScenario[]>(() =>
@@ -43,11 +45,15 @@ export default function LPScenarioEditor({
       scenario: template.scenario || '',
       layoutType: '',
       emphasis: '',
+      selectedImageIds: [],
     }))
   );
   const [targetAudience, setTargetAudience] = useState('');
   const [lpGoal, setLpGoal] = useState('');
   const [tone, setTone] = useState('プロフェッショナル');
+  
+  // 画像選択モーダル用
+  const [imageModalOpen, setImageModalOpen] = useState<number | null>(null);
 
   // ページ数変更時の処理
   const handlePageCountChange = (newCount: number) => {
@@ -57,7 +63,6 @@ export default function LPScenarioEditor({
     setPageCount(newCount);
     
     if (newCount > pages.length) {
-      // ページを追加
       const newPages = [...pages];
       for (let i = pages.length; i < newCount; i++) {
         const template = DEFAULT_PAGE_TEMPLATES[i] || {};
@@ -67,20 +72,40 @@ export default function LPScenarioEditor({
           scenario: template.scenario || '',
           layoutType: '',
           emphasis: '',
+          selectedImageIds: [],
         });
       }
       setPages(newPages);
     } else if (newCount < pages.length) {
-      // ページを削除
       setPages(pages.slice(0, newCount));
     }
   };
 
   // ページの内容更新
-  const updatePage = (index: number, field: keyof LPPageScenario, value: string | number) => {
+  const updatePage = (index: number, field: keyof LPPageScenario, value: string | number | string[]) => {
     const newPages = [...pages];
     newPages[index] = { ...newPages[index], [field]: value };
     setPages(newPages);
+  };
+
+  // 画像選択の切り替え
+  const toggleImageSelection = (pageIndex: number, imageId: string) => {
+    const page = pages[pageIndex];
+    const currentIds = page.selectedImageIds || [];
+    
+    let newIds: string[];
+    if (currentIds.includes(imageId)) {
+      newIds = currentIds.filter(id => id !== imageId);
+    } else {
+      // 最大4枚まで
+      if (currentIds.length >= 4) {
+        newIds = [...currentIds.slice(1), imageId];
+      } else {
+        newIds = [...currentIds, imageId];
+      }
+    }
+    
+    updatePage(pageIndex, 'selectedImageIds', newIds);
   };
 
   // 送信処理
@@ -110,13 +135,21 @@ export default function LPScenarioEditor({
     handlePageCountChange(count);
   };
 
+  // ソースURLでグループ化された画像
+  const imagesBySource = availableImages.reduce((acc, img) => {
+    const source = img.sourceUrl || 'その他';
+    if (!acc[source]) acc[source] = [];
+    acc[source].push(img);
+    return acc;
+  }, {} as Record<string, ScrapedImage[]>);
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">
         📄 LPシナリオ設定
       </h2>
       <p className="text-gray-600 mb-6">
-        各ページで伝えたい内容を入力してください。AIが画像生成プロンプトを作成します。
+        各ページで伝えたい内容と使用する画像を設定してください。
       </p>
 
       {/* 全体設定 */}
@@ -218,6 +251,11 @@ export default function LPScenarioEditor({
           </button>
         </div>
         <span className="text-sm text-gray-500">(最大15ページ)</span>
+        
+        {/* 利用可能画像数 */}
+        <span className="ml-auto text-sm text-gray-600">
+          📸 利用可能な画像: {availableImages.length}枚
+        </span>
       </div>
 
       {/* ページ一覧 */}
@@ -282,24 +320,142 @@ export default function LPScenarioEditor({
                   />
                 </div>
                 
-                {/* 強調ポイント */}
+                {/* 画像選択セクション */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">
-                    強調ポイント（任意）
-                  </label>
-                  <input
-                    type="text"
-                    value={page.emphasis || ''}
-                    onChange={(e) => updatePage(index, 'emphasis', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-black"
-                    placeholder="例：数字を大きく表示、写真を前面に"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-medium text-gray-500">
+                      使用する画像（最大4枚）
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setImageModalOpen(index)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      + 画像を選択
+                    </button>
+                  </div>
+                  
+                  {/* 選択済み画像のサムネイル */}
+                  <div className="flex gap-2 flex-wrap">
+                    {(page.selectedImageIds || []).map(imageId => {
+                      const img = availableImages.find(i => i.id === imageId);
+                      if (!img) return null;
+                      return (
+                        <div key={imageId} className="relative group">
+                          <img
+                            src={img.url}
+                            alt={img.alt || 'Selected image'}
+                            className="w-16 h-16 object-cover rounded border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => toggleImageSelection(index, imageId)}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {(page.selectedImageIds?.length || 0) === 0 && (
+                      <div 
+                        onClick={() => setImageModalOpen(index)}
+                        className="w-16 h-16 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400 cursor-pointer hover:border-blue-400 hover:text-blue-400"
+                      >
+                        <span className="text-2xl">+</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* 画像選択モーダル */}
+      {imageModalOpen !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h3 className="font-bold text-lg text-gray-900">
+                {pages[imageModalOpen].pageNumber}P「{pages[imageModalOpen].title}」の画像を選択
+              </h3>
+              <button
+                onClick={() => setImageModalOpen(null)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4 overflow-y-auto flex-grow">
+              {/* ソースURL別に表示 */}
+              {Object.entries(imagesBySource).map(([source, images]) => (
+                <div key={source} className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-600 mb-2 truncate">
+                    📍 {source.length > 50 ? source.slice(0, 50) + '...' : source}
+                    <span className="ml-2 text-gray-400">({images.length}枚)</span>
+                  </h4>
+                  <div className="grid grid-cols-6 gap-2">
+                    {images.map(img => {
+                      const isSelected = pages[imageModalOpen].selectedImageIds?.includes(img.id);
+                      return (
+                        <div
+                          key={img.id}
+                          onClick={() => toggleImageSelection(imageModalOpen, img.id)}
+                          className={`relative cursor-pointer rounded overflow-hidden border-2 transition-all ${
+                            isSelected 
+                              ? 'border-blue-500 ring-2 ring-blue-200' 
+                              : 'border-transparent hover:border-gray-300'
+                          }`}
+                        >
+                          <img
+                            src={img.url}
+                            alt={img.alt || 'Image'}
+                            className="w-full aspect-square object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          {isSelected && (
+                            <div className="absolute top-1 right-1 w-5 h-5 bg-blue-500 text-white rounded-full text-xs flex items-center justify-center">
+                              ✓
+                            </div>
+                          )}
+                          {img.isLogo && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-[10px] text-center py-0.5">
+                              LOGO
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              
+              {availableImages.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  利用可能な画像がありません
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 border-t flex justify-between items-center bg-gray-50">
+              <span className="text-sm text-gray-600">
+                選択中: {pages[imageModalOpen].selectedImageIds?.length || 0}/4枚
+              </span>
+              <button
+                onClick={() => setImageModalOpen(null)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                完了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ナビゲーション */}
       <div className="flex justify-between">

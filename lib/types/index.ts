@@ -9,6 +9,7 @@ export interface ScrapedImage {
   source: 'auto' | 'manual';
   id: string;
   isLogo?: boolean; // Flag to identify logo images
+  sourceUrl?: string; // Which URL this image was scraped from
 }
 
 export interface StructuredContext {
@@ -112,6 +113,7 @@ export interface LPPageScenario {
   scenario: string;           // そのページで伝えたい内容・シナリオ
   layoutType?: string;        // レイアウトタイプ（オプション）
   emphasis?: string;          // 強調したいポイント
+  selectedImageIds?: string[]; // このページで使用する画像のID一覧
 }
 
 /** LPシナリオ全体 */

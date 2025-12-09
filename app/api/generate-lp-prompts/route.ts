@@ -118,12 +118,15 @@ ${imageInfo}
 7. 日本のWeb広告/LPのトレンドを意識
 
 【ページシナリオ】
-${scenario.pages.map(p => `
+${scenario.pages.map((p: any) => `
 --- ${p.pageNumber}ページ目 ---
 タイトル: ${p.title}
 シナリオ: ${p.scenario}
 レイアウト: ${p.layoutType || '自動'}
 強調: ${p.emphasis || 'なし'}
+使用画像: ${p.selectedImages && p.selectedImages.length > 0 
+  ? p.selectedImages.map((img: any, i: number) => `${i + 1}. ${img.alt || 'Image'}`).join(', ')
+  : 'なし（AIで生成）'}
 `).join('\n')}
 `;
 
