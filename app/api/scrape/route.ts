@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Extract images with source URL tag
-        const images = scraper.extractImages($, url);
+        // Only extract logos from the first URL (TOP page)
+        const images = scraper.extractImages($, url, { skipLogos: !isFirst });
         const taggedImages = images.map(img => ({
           ...img,
           sourceUrl: url,

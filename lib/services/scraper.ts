@@ -365,15 +365,20 @@ export class WebScraper {
 
   /**
    * Fast image extraction with parallel processing
+   * @param $ - Cheerio API
+   * @param baseUrl - Base URL for resolving relative URLs
+   * @param options - Extraction options
+   * @param options.skipLogos - If true, skip logo extraction (for non-primary pages)
    */
-  extractImages($: cheerio.CheerioAPI, baseUrl: string): ScrapedImage[] {
+  extractImages($: cheerio.CheerioAPI, baseUrl: string, options?: { skipLogos?: boolean }): ScrapedImage[] {
     const startTime = Date.now();
     const images: ScrapedImage[] = [];
     const seen = new Set<string>();
     let idCounter = 0;
+    const skipLogos = options?.skipLogos ?? false;
 
-    // Extract logos first
-    const logos = this.extractLogos($, baseUrl);
+    // Extract logos only for primary page
+    const logos = skipLogos ? [] : this.extractLogos($, baseUrl);
     const logoUrls = new Set(logos.map(l => l.url));
 
     // Get og:image first (highest priority)
@@ -416,7 +421,8 @@ export class WebScraper {
           }
           
           seen.add(imageSrc);
-          const isLogo = logoUrls.has(absoluteUrl) || this.isLogoElement($, elem, imageSrc, alt);
+          // Only check for logos if not skipping
+          const isLogo = skipLogos ? false : (logoUrls.has(absoluteUrl) || this.isLogoElement($, elem, imageSrc, alt));
           
           images.push({
             url: absoluteUrl,
