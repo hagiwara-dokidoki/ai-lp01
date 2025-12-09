@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Display Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 30px 0;
+            border: 2px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .image-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .image-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .image-item p {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+        button {
+            background: #0070f3;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0051cc;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+        }
+        .error {
+            background: #ffebee !important;
+            color: #c62828;
+        }
+        .success {
+            background: #e8f5e9 !important;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <h1>🖼️ 画像表示テスト</h1>
+    
+    <div class="test-section">
+        <h2>URLスクレイピング</h2>
+        <input type="text" id="urlInput" value="https://www.starbucks.co.jp/" 
+               style="width: 400px; padding: 10px; font-size: 14px;">
+        <button onclick="scrapeAndDisplay()">画像を取得</button>
+        <div id="status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>取得した画像</h2>
+        <div id="imageCount"></div>
+        <div id="imageGrid" class="image-grid"></div>
+    </div>
+
+    <script>
+        async function scrapeAndDisplay() {
+            const url = document.getElementById('urlInput').value;
+            const status = document.getElementById('status');
+            const imageGrid = document.getElementById('imageGrid');
+            const imageCount = document.getElementById('imageCount');
+            
+            status.textContent = '🔄 画像を取得中...';
+            status.className = '';
+            imageGrid.innerHTML = '';
+            imageCount.textContent = '';
+            
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url }),
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.images) {
+                    status.textContent = `✅ ${data.images.length}枚の画像を取得しました`;
+                    status.className = 'success';
+                    
+                    imageCount.textContent = `取得画像数: ${data.images.length}枚 / 20枚`;
+                    
+                    data.images.forEach((image, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'image-item';
+                        
+                        const img = document.createElement('img');
+                        img.src = image.url;
+                        img.alt = image.alt || 'Image';
+                        img.onerror = function() {
+                            this.style.display = 'none';
+                            const errorMsg = document.createElement('p');
+                            errorMsg.textContent = '❌ 読み込み失敗';
+                            errorMsg.style.color = 'red';
+                            div.appendChild(errorMsg);
+                        };
+                        
+                        const info = document.createElement('p');
+                        info.innerHTML = `
+                            <strong>#${index + 1}</strong><br>
+                            Score: ${image.score.toFixed(2)}<br>
+                            ${image.width}x${image.height}<br>
+                            ${image.alt || 'No alt text'}
+                        `;
+                        
+                        div.appendChild(img);
+                        div.appendChild(info);
+                        imageGrid.appendChild(div);
+                    });
+                } else {
+                    status.textContent = '❌ エラー: ' + (data.message || '不明なエラー');
+                    status.className = 'error';
+                }
+            } catch (error) {
+                status.textContent = '❌ エラー: ' + error.message;
+                status.className = 'error';
+            }
+        }
+    </script>
+</body>
+</html>
