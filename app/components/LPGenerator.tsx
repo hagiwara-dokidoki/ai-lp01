@@ -192,7 +192,7 @@ export default function LPGenerator() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Jump to image selection (skip copy editing)
+      // Jump to color selection (skip image selection - images are selected per page in scenario editor)
       setStep(2);
       
     } catch (err: any) {
@@ -296,7 +296,7 @@ export default function LPGenerator() {
 
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      setStep(5);
+      setStep(4);
     } catch (err: any) {
       console.error('❌ Error:', err);
       setError(err.message);
@@ -306,13 +306,13 @@ export default function LPGenerator() {
     }
   };
 
-  // 新しいフロー: URL入力 → 画像選択 → 色選択 → シナリオ → LP生成
+  // 新しいフロー: URL入力 → 色選択 → シナリオ（画像選択込み） → LP生成
+  // 画像選択はシナリオステップ内で各ページごとに行う
   const stepLabels = [
     { num: 1, label: 'URL入力' },
-    { num: 2, label: '画像選択' },
-    { num: 3, label: '色選択' },
-    { num: 4, label: 'シナリオ' },
-    { num: 5, label: 'LP生成' },
+    { num: 2, label: '色選択' },
+    { num: 3, label: 'シナリオ' },
+    { num: 4, label: 'LP生成' },
   ];
 
   return (
@@ -355,7 +355,7 @@ export default function LPGenerator() {
                   {s.num}
                 </div>
                 <span className="ml-1 md:ml-2 text-xs md:text-sm text-gray-600 hidden sm:inline">{s.label}</span>
-                {s.num < 5 && (
+                {s.num < 4 && (
                   <div
                     className={`w-6 md:w-12 h-1 mx-1 md:mx-2 ${
                       step > s.num ? 'bg-blue-600' : 'bg-gray-300'
@@ -387,44 +387,31 @@ export default function LPGenerator() {
           )}
 
           {step === 2 && (
-            <ImageSelector
-              images={images}
-              selectedImages={selectedImages}
-              onSelectImages={setSelectedImages}
-              onAddImages={handleAddImages}
-              onNext={() => setStep(3)}
-              onGenerateCopies={() => setStep(3)}
-              loading={loading}
-              copiesAlreadyLoaded={true}
-            />
-          )}
-
-          {step === 3 && (
             <ColorPicker
               palette={palette}
               selected={selectedColors}
               onSelect={setSelectedColors}
-              onNext={() => setStep(4)}
-              onBack={() => setStep(2)}
+              onNext={() => setStep(3)}
+              onBack={() => setStep(1)}
               loading={loading}
             />
           )}
 
-          {step === 4 && (
+          {step === 3 && (
             <LPScenarioEditor
               onSubmit={handleGenerateLPPrompts}
-              onBack={() => setStep(3)}
+              onBack={() => setStep(2)}
               loading={loading}
               availableImages={images}
             />
           )}
 
-          {step === 5 && lpPagePrompts.length > 0 && (
+          {step === 4 && lpPagePrompts.length > 0 && (
             <LPPageViewer
               pages={lpPagePrompts}
               selectedColors={selectedColors}
-              selectedImages={images.filter(img => selectedImages.includes(img.id))}
-              onBack={() => setStep(4)}
+              selectedImages={images}
+              onBack={() => setStep(3)}
             />
           )}
         </div>

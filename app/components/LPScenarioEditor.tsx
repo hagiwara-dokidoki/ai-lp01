@@ -97,8 +97,8 @@ export default function LPScenarioEditor({
     if (currentIds.includes(imageId)) {
       newIds = currentIds.filter(id => id !== imageId);
     } else {
-      // 最大4枚まで
-      if (currentIds.length >= 4) {
+      // 最大5枚まで
+      if (currentIds.length >= 5) {
         newIds = [...currentIds.slice(1), imageId];
       } else {
         newIds = [...currentIds, imageId];
@@ -324,7 +324,7 @@ export default function LPScenarioEditor({
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-medium text-gray-500">
-                      使用する画像（最大4枚）
+                      使用する画像（最大5枚）
                     </label>
                     <button
                       type="button"
@@ -444,7 +444,7 @@ export default function LPScenarioEditor({
             
             <div className="p-4 border-t flex justify-between items-center bg-gray-50">
               <span className="text-sm text-gray-600">
-                選択中: {pages[imageModalOpen].selectedImageIds?.length || 0}/4枚
+                選択中: {pages[imageModalOpen].selectedImageIds?.length || 0}/5枚
               </span>
               <button
                 onClick={() => setImageModalOpen(null)}
