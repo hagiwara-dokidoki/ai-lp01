@@ -196,6 +196,48 @@ export default function ColorPicker({
   const cssColorCount = palette.filter(c => c.source === 'css').length;
   const aiColorCount = palette.filter(c => c.source === 'ai').length;
 
+  // 個別調整用のパレット（現在の選択5色 + プリセット + 抽出色）
+  const quickSelectColors = useMemo(() => {
+    const colors: Array<{ hex: string; label: string }> = [];
+    
+    // 現在選択中の5色を追加
+    Object.entries(selected).forEach(([key, hex]) => {
+      if (hex && !colors.find(c => c.hex.toUpperCase() === hex.toUpperCase())) {
+        colors.push({ hex: hex.toUpperCase(), label: '選択中' });
+      }
+    });
+    
+    // 現在のタブに応じた色を追加
+    if (activeTab === 'preset') {
+      // プリセットから人気色を追加
+      PRESET_PALETTES.slice(0, 3).forEach(preset => {
+        Object.values(preset.colors).forEach(hex => {
+          if (!colors.find(c => c.hex.toUpperCase() === hex.toUpperCase())) {
+            colors.push({ hex: hex.toUpperCase(), label: preset.name });
+          }
+        });
+      });
+    } else if (activeTab === 'generate' && generatedPalettes.length > 0) {
+      // 生成したパレットの色を追加
+      generatedPalettes.forEach(pal => {
+        Object.values(pal.colors).forEach(hex => {
+          if (!colors.find(c => c.hex.toUpperCase() === hex.toUpperCase())) {
+            colors.push({ hex: hex.toUpperCase(), label: pal.name });
+          }
+        });
+      });
+    }
+    
+    // 抽出色を追加
+    palette.slice(0, 10).forEach(color => {
+      if (!colors.find(c => c.hex.toUpperCase() === color.hex.toUpperCase())) {
+        colors.push({ hex: color.hex.toUpperCase(), label: color.source === 'css' ? 'CSS' : 'AI' });
+      }
+    });
+    
+    return colors.slice(0, 15); // 最大15色まで
+  }, [selected, activeTab, generatedPalettes, palette]);
+
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-2">
@@ -455,24 +497,22 @@ export default function ColorPicker({
                   maxLength={7}
                 />
 
-                {/* パレットから選択（抽出色がある場合） */}
-                {palette.length > 0 && (
-                  <div className="flex gap-1 flex-wrap flex-1">
-                    {palette.slice(0, 10).map((color, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSelectColor(role.key, color.hex)}
-                        className={`w-6 h-6 rounded border transition-all flex-shrink-0 ${
-                          selected[role.key].toUpperCase() === color.hex.toUpperCase()
-                            ? 'border-blue-500 scale-110 ring-2 ring-blue-300'
-                            : 'border-gray-200 hover:border-gray-400 hover:scale-105'
-                        }`}
-                        style={{ backgroundColor: color.hex }}
-                        title={color.hex}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* パレットから選択（選択中の色 + タブに応じた色） */}
+                <div className="flex gap-1 flex-wrap flex-1">
+                  {quickSelectColors.map((color, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleSelectColor(role.key, color.hex)}
+                      className={`w-6 h-6 rounded border transition-all flex-shrink-0 ${
+                        selected[role.key].toUpperCase() === color.hex.toUpperCase()
+                          ? 'border-blue-500 scale-110 ring-2 ring-blue-300'
+                          : 'border-gray-200 hover:border-gray-400 hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                      title={`${color.hex} (${color.label})`}
+                    />
+                  ))}
+                </div>
 
                 {/* 明るさ調整 */}
                 <div className="flex items-center gap-1">
