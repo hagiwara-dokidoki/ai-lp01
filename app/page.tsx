@@ -1,5 +1,5 @@
-import BannerGenerator from './components/BannerGenerator';
+import LPGenerator from './components/LPGenerator';
 
 export default function Home() {
-  return <BannerGenerator />;
+  return <LPGenerator />;
 }
