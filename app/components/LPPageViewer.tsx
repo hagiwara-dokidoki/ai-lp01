@@ -70,12 +70,16 @@ export default function LPPageViewer({
     try {
       console.log(`🎨 Generating LP page ${page.pageNumber}: ${page.title}`);
 
+      // ページ番号をA-Lのバリアントに変換（最大12ページ）
+      const variantLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+      const variant = variantLetters[page.pageNumber - 1] || 'A';
+      
       const response = await fetch('/api/generate-banner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: page.prompt,
-          variant: `LP-${page.pageNumber}`,
+          variant: variant,
           selectedImages: selectedImages.map(img => ({
             url: img.url,
             alt: img.alt,
