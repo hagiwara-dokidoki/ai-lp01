@@ -467,7 +467,7 @@ export default function LPGenerator() {
       {/* Footer */}
       <footer className="bg-black text-gray-400 py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-          <p>© 2024 株式会社ドキドキ | AI LP Generator</p>
+          <p>Copyright © DOKIDOKI Inc. All Rights Reserved.</p>
         </div>
       </footer>
     </div>
