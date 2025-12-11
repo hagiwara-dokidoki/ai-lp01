@@ -318,7 +318,7 @@ export default function LPGenerator() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-white">
       {/* Progress Indicator Modal */}
       {progressState.show && (
         <ProgressIndicator
@@ -331,36 +331,66 @@ export default function LPGenerator() {
         />
       )}
       
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            🚀 AI LP Generator
-          </h1>
-          <p className="text-lg text-gray-600">
-            サイト情報からLPを自動生成 | Powered by Gemini
-          </p>
+      {/* Black Header */}
+      <header className="bg-black text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center gap-4">
+              <img 
+                src="/logo.png" 
+                alt="株式会社ドキドキ" 
+                className="h-10 md:h-12"
+              />
+            </div>
+            
+            {/* Progress Steps in Header */}
+            <div className="hidden md:flex items-center space-x-2">
+              {stepLabels.map((s) => (
+                <div key={s.num} className="flex items-center">
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                      step >= s.num
+                        ? 'bg-yellow-500 text-black'
+                        : 'bg-gray-700 text-gray-400'
+                    }`}
+                  >
+                    {s.num}
+                  </div>
+                  <span className={`ml-1 text-xs ${step >= s.num ? 'text-yellow-500' : 'text-gray-500'}`}>
+                    {s.label}
+                  </span>
+                  {s.num < 5 && (
+                    <div
+                      className={`w-8 h-0.5 mx-1 ${
+                        step > s.num ? 'bg-yellow-500' : 'bg-gray-700'
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex justify-center items-center space-x-2 md:space-x-4">
+        
+        {/* Mobile Progress Steps */}
+        <div className="md:hidden border-t border-gray-800">
+          <div className="flex justify-center items-center space-x-1 py-3 px-4">
             {stepLabels.map((s) => (
               <div key={s.num} className="flex items-center">
                 <div
-                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-sm ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
                     step >= s.num
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-300 text-gray-600'
+                      ? 'bg-yellow-500 text-black'
+                      : 'bg-gray-700 text-gray-400'
                   }`}
                 >
                   {s.num}
                 </div>
-                <span className="ml-1 md:ml-2 text-xs md:text-sm text-gray-600 hidden sm:inline">{s.label}</span>
                 {s.num < 5 && (
                   <div
-                    className={`w-6 md:w-12 h-1 mx-1 md:mx-2 ${
-                      step > s.num ? 'bg-blue-600' : 'bg-gray-300'
+                    className={`w-4 h-0.5 mx-0.5 ${
+                      step > s.num ? 'bg-yellow-500' : 'bg-gray-700'
                     }`}
                   />
                 )}
@@ -368,71 +398,78 @@ export default function LPGenerator() {
             ))}
           </div>
         </div>
+      </header>
 
-        {/* Error Display */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
-            <button 
-              onClick={() => setError('')}
-              className="mt-2 text-sm text-red-600 underline"
-            >
-              閉じる
-            </button>
+      {/* Main Content - White Background */}
+      <main className="bg-white min-h-[calc(100vh-180px)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800">{error}</p>
+              <button 
+                onClick={() => setError('')}
+                className="mt-2 text-sm text-red-600 underline"
+              >
+                閉じる
+              </button>
+            </div>
+          )}
+
+          {/* Step Content */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-8">
+            {step === 1 && (
+              <MultiURLInput onSubmit={handleScrape} loading={loading} />
+            )}
+
+            {step === 2 && (
+              <ImagePreview
+                images={images}
+                onAddImages={handleAddImages}
+                onNext={() => setStep(3)}
+                onBack={() => setStep(1)}
+                loading={loading}
+              />
+            )}
+
+            {step === 3 && (
+              <ColorPicker
+                palette={palette}
+                selected={selectedColors}
+                onSelect={setSelectedColors}
+                onNext={() => setStep(4)}
+                onBack={() => setStep(2)}
+                loading={loading}
+              />
+            )}
+
+            {step === 4 && (
+              <LPScenarioEditor
+                onSubmit={handleGenerateLPPrompts}
+                onBack={() => setStep(3)}
+                loading={loading}
+                availableImages={images}
+              />
+            )}
+
+            {step === 5 && lpPagePrompts.length > 0 && (
+              <LPPageViewer
+                pages={lpPagePrompts}
+                selectedColors={selectedColors}
+                selectedImages={images}
+                onBack={() => setStep(4)}
+              />
+            )}
           </div>
-        )}
-
-        {/* Step Content */}
-        <div className="bg-white rounded-xl shadow-xl p-8">
-          {step === 1 && (
-            <MultiURLInput onSubmit={handleScrape} loading={loading} />
-          )}
-
-          {step === 2 && (
-            <ImagePreview
-              images={images}
-              onAddImages={handleAddImages}
-              onNext={() => setStep(3)}
-              onBack={() => setStep(1)}
-              loading={loading}
-            />
-          )}
-
-          {step === 3 && (
-            <ColorPicker
-              palette={palette}
-              selected={selectedColors}
-              onSelect={setSelectedColors}
-              onNext={() => setStep(4)}
-              onBack={() => setStep(2)}
-              loading={loading}
-            />
-          )}
-
-          {step === 4 && (
-            <LPScenarioEditor
-              onSubmit={handleGenerateLPPrompts}
-              onBack={() => setStep(3)}
-              loading={loading}
-              availableImages={images}
-            />
-          )}
-
-          {step === 5 && lpPagePrompts.length > 0 && (
-            <LPPageViewer
-              pages={lpPagePrompts}
-              selectedColors={selectedColors}
-              selectedImages={images}
-              onBack={() => setStep(4)}
-            />
-          )}
         </div>
+      </main>
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>© 2024 AI LP Generator | Built with Next.js & Gemini API</p>
+      {/* Footer */}
+      <footer className="bg-black text-gray-400 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+          <p>© 2024 株式会社ドキドキ | AI LP Generator</p>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
